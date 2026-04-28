@@ -130,10 +130,12 @@
   }
 }
 
-tr.ignored-op-topic {
+tr.ignored-op-topic,
+.topic-list-item.ignored-op-topic,
+.latest-topic-list-item.ignored-op-topic {
   display: none !important;
 }
 
-tr.ignored-latest-poster .posters::after {
+td.posters::after {
   content: none !important;
 }
