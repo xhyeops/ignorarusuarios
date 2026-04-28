@@ -1,0 +1,20 @@
+hide_ignored_users_avatar:
+  type: bool
+  default: true
+  description:
+    en: "Hide/dim avatar in poster list if the user is ignored"
+    pt_BR: "Ocultar/esmaecer avatar na lista de postadores se o usuário está ignorado"
+
+hide_ignored_user_topics:
+  type: bool
+  default: true
+  description:
+    en: "Hide topics created by ignored users from topic lists"
+    pt_BR: "Ocultar tópicos criados por usuários ignorados das listas de tópicos"
+
+hide_ignored_user_quotes:
+  type: bool
+  default: true
+  description:
+    en: "Hide quoted content from ignored users"
+    pt_BR: "Ocultar citações de usuários ignorados"

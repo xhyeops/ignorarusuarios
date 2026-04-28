@@ -1,0 +1,10 @@
+{
+  "name": "Ignore Plus",
+  "component": true,
+  "license_url": "https://github.com/notedboi/discourse-ignore-plus/blob/master/LICENSE",
+  "about_url": "https://github.com/notedboi/discourse-ignore-plus",
+  "authors": "notedboi, updated for Discourse 2026+",
+  "theme_version": "2.0.0",
+  "minimum_discourse_version": "3.3.0",
+  "maximum_discourse_version": null
+}
