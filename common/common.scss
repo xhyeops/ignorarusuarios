@@ -1,4 +1,4 @@
-/* Ignore Plus - Updated for Discourse 2026+ */
+
 
 /* Hide topics from ignored users (topic creator is ignored) */
 /* We use these specific properties to not break infinite scroll/load-more */
@@ -128,4 +128,18 @@
   &:hover {
     text-decoration: underline;
   }
+}
+
+tr.ignored-op-topic {
+  display: none !important;
+}
+
+tr.ignored-latest-poster .posters a.latest {
+  display: none !important;
+}
+
+tr.ignored-latest-poster .posters::after {
+  content: "Usuário ignorado";
+  font-size: 12px;
+  opacity: 0.7;
 }
