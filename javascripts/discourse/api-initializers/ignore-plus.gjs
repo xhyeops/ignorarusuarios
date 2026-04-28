@@ -12,8 +12,16 @@ export default apiInitializer("1.34", (api) => {
   const ignoredUsers = user.ignored_users || [];
   if (!ignoredUsers.length) return;
 
+  function normalizeUsername(username) {
+    return username?.toLowerCase?.().trim();
+  }
+
   function isIgnoredUser(username) {
-    return ignoredUsers.includes(username);
+    const normalized = normalizeUsername(username);
+
+    return ignoredUsers.some(
+      (ignored) => normalizeUsername(ignored) === normalized
+    );
   }
 
   function getUsername(poster) {
@@ -34,34 +42,12 @@ export default apiInitializer("1.34", (api) => {
     return false;
   }
 
-  function isLatestPosterIgnored(topic) {
-    const posters = topic.posters || [];
-
-    return posters.some((poster) => {
-      const username = getUsername(poster);
-      const description = poster?.description?.toLowerCase?.() || "";
-
-      const isLatest =
-        poster?.extras === "latest" ||
-        description.includes("most recent") ||
-        description.includes("último") ||
-        description.includes("mais recente");
-
-      return username && isLatest && isIgnoredUser(username);
-    });
-  }
-
-  // Adiciona classes na lista de tópicos
   api.registerValueTransformer("topic-list-item-class", ({ value, context }) => {
     const topic = context?.topic;
     if (!topic) return value;
 
     if (hideTopics && isIgnoredTopicCreator(topic)) {
       value.push("ignored-op-topic");
-    }
-
-    if (hideAvatar && isLatestPosterIgnored(topic)) {
-      value.push("ignored-latest-poster");
     }
 
     return value;
@@ -72,32 +58,47 @@ export default apiInitializer("1.34", (api) => {
     return value;
   });
 
-  // 🔥 FUNÇÃO QUE TROCA O ÚLTIMO PELO PENÚLTIMO
+  function getUsernameFromPosterLink(link) {
+    const dataUserCard = link.getAttribute("data-user-card");
+    if (dataUserCard) return dataUserCard;
+
+    const href = link.getAttribute("href");
+    if (href?.startsWith("/u/")) {
+      return href.replace("/u/", "").split("/")[0];
+    }
+
+    return null;
+  }
+
   function promotePreviousPoster() {
-    document.querySelectorAll("tr.ignored-latest-poster td.posters").forEach((postersCell) => {
+    if (!hideAvatar) return;
+
+    document.querySelectorAll("td.posters").forEach((postersCell) => {
       const latestPoster = postersCell.querySelector("a.latest");
 
       if (!latestPoster) return;
 
-      // remove o último ignorado
+      const latestUsername = getUsernameFromPosterLink(latestPoster);
+
+      if (!latestUsername || !isIgnoredUser(latestUsername)) return;
+
       latestPoster.remove();
 
-      const posters = postersCell.querySelectorAll("a");
+      const remainingPosters = postersCell.querySelectorAll("a");
 
-      if (!posters.length) return;
+      if (!remainingPosters.length) return;
 
-      // pega o novo último (penúltimo original)
-      const previousPoster = posters[posters.length - 1];
+      const previousPoster = remainingPosters[remainingPosters.length - 1];
 
       previousPoster.classList.add("latest");
 
-      const avatar = previousPoster.querySelector("img.avatar");
+      const previousAvatar = previousPoster.querySelector("img.avatar");
 
-      if (avatar) {
-        avatar.classList.add("latest");
+      if (previousAvatar) {
+        previousAvatar.classList.add("latest");
 
-        if (avatar.title) {
-          avatar.title = avatar.title.replace(
+        if (previousAvatar.title) {
+          previousAvatar.title = previousAvatar.title.replace(
             /Autor\(a\).*$/,
             "Autor(a) mais recente"
           );
@@ -106,9 +107,9 @@ export default apiInitializer("1.34", (api) => {
     });
   }
 
-  // Executa ao trocar de página
   api.onPageChange(() => {
     setTimeout(promotePreviousPoster, 300);
     setTimeout(promotePreviousPoster, 1000);
+    setTimeout(promotePreviousPoster, 2000);
   });
 });
