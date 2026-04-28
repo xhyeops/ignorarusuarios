@@ -134,10 +134,6 @@ tr.ignored-op-topic {
   display: none !important;
 }
 
-tr.ignored-latest-poster .posters a.latest {
-  display: none !important;
-}
-
 tr.ignored-latest-poster .posters::after {
   content: none !important;
 }
