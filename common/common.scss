@@ -139,7 +139,5 @@ tr.ignored-latest-poster .posters a.latest {
 }
 
 tr.ignored-latest-poster .posters::after {
-  content: "Usuário ignorado";
-  font-size: 12px;
-  opacity: 0.7;
+  content: none !important;
 }
