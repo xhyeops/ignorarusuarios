@@ -12,19 +12,28 @@ export default apiInitializer("1.34", (api) => {
   const ignoredUsers = user.ignored_users || [];
   if (!ignoredUsers.length) return;
 
-  function normalizeUsername(username) {
-    return username?.toLowerCase?.().trim();
+  function normalize(value) {
+    return value?.toString?.().toLowerCase().trim();
   }
 
   function isIgnoredUser(username) {
-    const normalized = normalizeUsername(username);
-
-    return ignoredUsers.some(
-      (ignored) => normalizeUsername(ignored) === normalized
-    );
+    const normalized = normalize(username);
+    return ignoredUsers.some((ignored) => normalize(ignored) === normalized);
   }
 
-  function getUsername(poster) {
+  function getUsernameFromPosterLink(link) {
+    const dataUserCard = link.getAttribute("data-user-card");
+    if (dataUserCard) return dataUserCard;
+
+    const href = link.getAttribute("href");
+    if (href?.startsWith("/u/")) {
+      return href.replace("/u/", "").split("/")[0];
+    }
+
+    return null;
+  }
+
+  function getUsernameFromPosterObject(poster) {
     return poster?.user?.username || poster?.username;
   }
 
@@ -32,7 +41,7 @@ export default apiInitializer("1.34", (api) => {
     const posters = topic.posters || [];
 
     if (posters.length > 0) {
-      const username = getUsername(posters[0]);
+      const username = getUsernameFromPosterObject(posters[0]);
       if (username) return isIgnoredUser(username);
     }
 
@@ -58,58 +67,83 @@ export default apiInitializer("1.34", (api) => {
     return value;
   });
 
-  function getUsernameFromPosterLink(link) {
-    const dataUserCard = link.getAttribute("data-user-card");
-    if (dataUserCard) return dataUserCard;
-
-    const href = link.getAttribute("href");
-    if (href?.startsWith("/u/")) {
-      return href.replace("/u/", "").split("/")[0];
-    }
-
-    return null;
-  }
-
-  function promotePreviousPoster() {
+  function fixPosterList() {
     if (!hideAvatar) return;
 
     document.querySelectorAll("td.posters").forEach((postersCell) => {
-      const latestPoster = postersCell.querySelector("a.latest");
+      const posterLinks = Array.from(postersCell.querySelectorAll("a"));
 
-      if (!latestPoster) return;
+      if (!posterLinks.length) return;
 
-      const latestUsername = getUsernameFromPosterLink(latestPoster);
+      posterLinks.forEach((link) => {
+        const username = getUsernameFromPosterLink(link);
 
-      if (!latestUsername || !isIgnoredUser(latestUsername)) return;
+        if (username && isIgnoredUser(username)) {
+          link.remove();
+        }
+      });
 
-      latestPoster.remove();
+      const remainingPosters = Array.from(postersCell.querySelectorAll("a"));
 
-      const remainingPosters = postersCell.querySelectorAll("a");
+      remainingPosters.forEach((link) => {
+        link.classList.remove("latest");
 
-      if (!remainingPosters.length) return;
+        const avatar = link.querySelector("img.avatar");
+        if (avatar) {
+          avatar.classList.remove("latest");
+        }
+      });
 
-      const previousPoster = remainingPosters[remainingPosters.length - 1];
+      const newLatest = remainingPosters[remainingPosters.length - 1];
 
-      previousPoster.classList.add("latest");
+      if (newLatest) {
+        newLatest.classList.add("latest");
 
-      const previousAvatar = previousPoster.querySelector("img.avatar");
+        const avatar = newLatest.querySelector("img.avatar");
 
-      if (previousAvatar) {
-        previousAvatar.classList.add("latest");
+        if (avatar) {
+          avatar.classList.add("latest");
 
-        if (previousAvatar.title) {
-          previousAvatar.title = previousAvatar.title.replace(
-            /Autor\(a\).*$/,
-            "Autor(a) mais recente"
-          );
+          if (avatar.title) {
+            avatar.title = avatar.title.replace(
+              /Autor\(a\).*$/,
+              "Autor(a) mais recente"
+            );
+          }
         }
       }
     });
   }
 
+  function hideIgnoredQuotes() {
+    document.querySelectorAll(".quote").forEach((quote) => {
+      const username =
+        quote.querySelector("[data-user-card]")?.getAttribute("data-user-card") ||
+        quote.querySelector("a[href^='/u/']")?.getAttribute("href")?.replace("/u/", "").split("/")[0];
+
+      if (username && isIgnoredUser(username)) {
+        quote.classList.add("ignored-user-quote");
+      }
+    });
+  }
+
+  function runIgnorePlusFixes() {
+    fixPosterList();
+    hideIgnoredQuotes();
+  }
+
   api.onPageChange(() => {
-    setTimeout(promotePreviousPoster, 300);
-    setTimeout(promotePreviousPoster, 1000);
-    setTimeout(promotePreviousPoster, 2000);
+    setTimeout(runIgnorePlusFixes, 300);
+    setTimeout(runIgnorePlusFixes, 1000);
+    setTimeout(runIgnorePlusFixes, 2000);
+  });
+
+  const observer = new MutationObserver(() => {
+    runIgnorePlusFixes();
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
   });
 });
