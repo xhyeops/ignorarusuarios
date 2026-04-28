@@ -138,3 +138,9 @@ tr.ignored-latest-poster .posters img.latest {
 tr.ignored-latest-poster .posters::after {
   content: none !important;
 }
+
+
+/* Tabela de tópicos tradicional */
+tr.topic-list-item.hidden-topic {
+  display: none !important;
+}
