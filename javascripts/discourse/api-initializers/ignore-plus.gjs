@@ -4,21 +4,13 @@ export default apiInitializer("1.34", (api) => {
   const hideAvatar = settings.hide_ignored_users_avatar;
   const hideTopics = settings.hide_ignored_user_topics;
 
-  if (!hideAvatar && !hideTopics) {
-    return;
-  }
+  if (!hideAvatar && !hideTopics) return;
 
   const user = api.getCurrentUser();
-
-  if (!user) {
-    return;
-  }
+  if (!user) return;
 
   const ignoredUsers = user.ignored_users || [];
-
-  if (!ignoredUsers.length) {
-    return;
-  }
+  if (!ignoredUsers.length) return;
 
   function isIgnoredUser(username) {
     return ignoredUsers.includes(username);
@@ -33,34 +25,13 @@ export default apiInitializer("1.34", (api) => {
 
     if (posters.length > 0) {
       const username = getUsername(posters[0]);
-
-      if (username) {
-        return isIgnoredUser(username);
-      }
+      if (username) return isIgnoredUser(username);
     }
 
     const creatorUsername = topic.creator?.username || topic.user?.username;
-
-    if (creatorUsername) {
-      return isIgnoredUser(creatorUsername);
-    }
+    if (creatorUsername) return isIgnoredUser(creatorUsername);
 
     return false;
-  }
-
-  function getIgnoredPosterUsernames(topic) {
-    const ignoredPosters = [];
-    const posters = topic.posters || [];
-
-    posters.forEach((poster) => {
-      const username = getUsername(poster);
-
-      if (username && isIgnoredUser(username)) {
-        ignoredPosters.push(username);
-      }
-    });
-
-    return ignoredPosters;
   }
 
   function isLatestPosterIgnored(topic) {
@@ -68,7 +39,6 @@ export default apiInitializer("1.34", (api) => {
 
     return posters.some((poster) => {
       const username = getUsername(poster);
-
       const description = poster?.description?.toLowerCase?.() || "";
 
       const isLatest =
@@ -81,31 +51,17 @@ export default apiInitializer("1.34", (api) => {
     });
   }
 
+  // Adiciona classes na lista de tópicos
   api.registerValueTransformer("topic-list-item-class", ({ value, context }) => {
     const topic = context?.topic;
-
-    if (!topic) {
-      return value;
-    }
+    if (!topic) return value;
 
     if (hideTopics && isIgnoredTopicCreator(topic)) {
       value.push("ignored-op-topic");
     }
 
-    if (hideAvatar) {
-      const ignoredPosters = getIgnoredPosterUsernames(topic);
-
-      if (ignoredPosters.length > 0) {
-        value.push("has-ignored-posters");
-
-        ignoredPosters.forEach((username) => {
-          value.push(`ignored-poster-${username.toLowerCase()}`);
-        });
-      }
-
-      if (isLatestPosterIgnored(topic)) {
-        value.push("ignored-latest-poster");
-      }
+    if (hideAvatar && isLatestPosterIgnored(topic)) {
+      value.push("ignored-latest-poster");
     }
 
     return value;
@@ -114,5 +70,45 @@ export default apiInitializer("1.34", (api) => {
   api.registerValueTransformer("topic-list-class", ({ value }) => {
     value.push("ignore-plus-enabled");
     return value;
+  });
+
+  // 🔥 FUNÇÃO QUE TROCA O ÚLTIMO PELO PENÚLTIMO
+  function promotePreviousPoster() {
+    document.querySelectorAll("tr.ignored-latest-poster td.posters").forEach((postersCell) => {
+      const latestPoster = postersCell.querySelector("a.latest");
+
+      if (!latestPoster) return;
+
+      // remove o último ignorado
+      latestPoster.remove();
+
+      const posters = postersCell.querySelectorAll("a");
+
+      if (!posters.length) return;
+
+      // pega o novo último (penúltimo original)
+      const previousPoster = posters[posters.length - 1];
+
+      previousPoster.classList.add("latest");
+
+      const avatar = previousPoster.querySelector("img.avatar");
+
+      if (avatar) {
+        avatar.classList.add("latest");
+
+        if (avatar.title) {
+          avatar.title = avatar.title.replace(
+            /Autor\(a\).*$/,
+            "Autor(a) mais recente"
+          );
+        }
+      }
+    });
+  }
+
+  // Executa ao trocar de página
+  api.onPageChange(() => {
+    setTimeout(promotePreviousPoster, 300);
+    setTimeout(promotePreviousPoster, 1000);
   });
 });
