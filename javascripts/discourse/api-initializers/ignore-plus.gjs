@@ -4,100 +4,72 @@ export default apiInitializer("1.34", (api) => {
   const hideAvatar = settings.hide_ignored_users_avatar;
   const hideTopics = settings.hide_ignored_user_topics;
 
+  if (!hideAvatar && !hideTopics) return;
+
   const user = api.getCurrentUser();
   if (!user) return;
 
-  const ignoredUsersRaw = user.ignored_users || [];
-
-  const ignoredUsers = ignoredUsersRaw
-    .map((u) => {
-      if (typeof u === "string") return u;
-      return u?.username || u?.name;
-    })
-    .filter(Boolean)
-    .map((u) => u.toLowerCase());
-
+  const ignoredUsers = user.ignored_users || [];
   if (!ignoredUsers.length) return;
 
+  function normalize(username) {
+    return username?.toString?.().toLowerCase().trim();
+  }
+
   function isIgnoredUser(username) {
-    return ignoredUsers.includes(username?.toLowerCase?.());
+    return ignoredUsers.some((ignored) => normalize(ignored) === normalize(username));
   }
 
-  function usernameFromLink(link) {
-    return (
-      link?.getAttribute("data-user-card") ||
-      link?.getAttribute("href")?.replace("/u/", "").split("/")[0]
-    );
+  function getUsername(poster) {
+    return poster?.user?.username || poster?.username;
   }
 
-  function fixTopicListPosters() {
-    if (!hideAvatar) return;
+  function isIgnoredTopicCreator(topic) {
+    const posters = topic.posters || [];
+    const username = getUsername(posters[0]);
 
-    document.querySelectorAll("td.posters").forEach((cell) => {
-      const links = Array.from(cell.querySelectorAll("a"));
+    if (username) return isIgnoredUser(username);
 
-      links.forEach((link) => {
-        const username = usernameFromLink(link);
+    const creatorUsername = topic.creator?.username || topic.user?.username;
+    if (creatorUsername) return isIgnoredUser(creatorUsername);
 
-        if (isIgnoredUser(username)) {
-          link.remove();
-        }
-      });
+    return false;
+  }
 
-      const remaining = Array.from(cell.querySelectorAll("a"));
+  function isLatestPosterIgnored(topic) {
+    const posters = topic.posters || [];
 
-      remaining.forEach((link) => {
-        link.classList.remove("latest");
-        link.querySelector("img.avatar")?.classList.remove("latest");
-      });
+    return posters.some((poster) => {
+      const username = getUsername(poster);
+      const description = poster?.description?.toLowerCase?.() || "";
 
-      const newLatest = remaining[remaining.length - 1];
+      const isLatest =
+        poster?.extras === "latest" ||
+        description.includes("most recent") ||
+        description.includes("último") ||
+        description.includes("mais recente");
 
-      if (newLatest) {
-        newLatest.classList.add("latest");
-
-        const avatar = newLatest.querySelector("img.avatar");
-        if (avatar) {
-          avatar.classList.add("latest");
-          avatar.title = avatar.title?.replace(
-            /Autor\(a\).*$/,
-            "Autor(a) mais recente"
-          );
-        }
-      }
+      return username && isLatest && isIgnoredUser(username);
     });
   }
 
-  function hideIgnoredPosts() {
-    document.querySelectorAll(".topic-post").forEach((post) => {
-      const userLink =
-        post.querySelector(".topic-avatar a[data-user-card]") ||
-        post.querySelector(".names a[data-user-card]") ||
-        post.querySelector("a[data-user-card]");
+  api.registerValueTransformer("topic-list-item-class", ({ value, context }) => {
+    const topic = context?.topic;
+    if (!topic) return value;
 
-      const username = usernameFromLink(userLink);
+    if (hideTopics && isIgnoredTopicCreator(topic)) {
+      value.push("ignored-op-topic");
+    }
 
-      if (isIgnoredUser(username)) {
-        post.style.display = "none";
-      }
-    });
-  }
+    if (hideAvatar && isLatestPosterIgnored(topic)) {
+      value.push("ignored-latest-poster");
+    }
 
-  function run() {
-    fixTopicListPosters();
-    hideIgnoredPosts();
-  }
-
-  api.onPageChange(() => {
-    setTimeout(run, 300);
-    setTimeout(run, 1000);
-    setTimeout(run, 2000);
+    return value;
   });
 
-  new MutationObserver(() => {
-    run();
-  }).observe(document.body, {
-    childList: true,
-    subtree: true,
+  api.registerValueTransformer("topic-list-class", ({ value }) => {
+    value.push("ignore-plus-enabled");
+    return value;
   });
 });
