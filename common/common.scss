@@ -143,3 +143,11 @@ tr.ignored-op-topic,
 td.posters::after {
   content: none !important;
 }
+
+td.posters::after {
+  content: none !important;
+}
+
+.topic-post[style*="display: none"] {
+  display: none !important;
+}
