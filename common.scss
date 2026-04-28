@@ -1,0 +1,131 @@
+/* Ignore Plus - Updated for Discourse 2026+ */
+
+/* Hide topics from ignored users (topic creator is ignored) */
+/* We use these specific properties to not break infinite scroll/load-more */
+.topic-list-item.ignored-op-topic {
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+/* Force overwrite for topic thumbnail component */
+.topic-list-item.ignored-op-topic * {
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+/* Alternative: if display:none works for your setup, uncomment below */
+/* .topic-list-item.ignored-op-topic {
+  display: none !important;
+} */
+
+/* Dim avatars of ignored users in the posters column */
+/* This targets the avatar images in topic list items that have ignored posters */
+.topic-list-item.has-ignored-posters {
+  /* Parent has ignored posters - individual avatar styling below */
+}
+
+/* Style for ignored user avatars */
+.ignored-user-avatar,
+.avatar.ignored-user-avatar {
+  opacity: 0.15 !important;
+  filter: grayscale(100%) !important;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+/* On hover, show avatar slightly more */
+.ignored-user-avatar:hover,
+.avatar.ignored-user-avatar:hover {
+  opacity: 0.4 !important;
+  filter: grayscale(50%) !important;
+}
+
+/* Latest topic list (categories page) - hide ignored user topics */
+.latest-topic-list-item.ignored-op-topic {
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+/* Mobile view adjustments */
+.mobile-view {
+  .topic-list-item.ignored-op-topic {
+    display: none !important;
+  }
+  
+  .latest-topic-list-item.ignored-op-topic {
+    display: none !important;
+  }
+}
+
+/* Hide ignored users in suggested topics */
+.suggested-topics {
+  .topic-list-item.ignored-op-topic {
+    display: none !important;
+  }
+}
+
+/* Hide quotes from ignored users */
+.ignored-user-quote {
+  display: none !important;
+}
+
+.ignored-quote-revealed {
+  display: block !important;
+  opacity: 0.7;
+  border-left: 3px solid var(--danger) !important;
+}
+
+/* Placeholder for hidden quotes */
+.ignored-quote-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75em 1em;
+  margin: 0.5em 0;
+  background: var(--primary-very-low);
+  border-left: 3px solid var(--primary-low-mid);
+  border-radius: 0 4px 4px 0;
+  font-size: 0.9em;
+  color: var(--primary-medium);
+}
+
+.ignored-quote-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.ignored-quote-message .d-icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+}
+
+.show-ignored-quote {
+  font-size: 0.85em;
+  color: var(--tertiary);
+  cursor: pointer;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
