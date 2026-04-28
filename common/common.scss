@@ -130,24 +130,11 @@
   }
 }
 
-tr.ignored-op-topic,
-.topic-list-item.ignored-op-topic,
-.latest-topic-list-item.ignored-op-topic {
+tr.ignored-latest-poster .posters a.latest,
+tr.ignored-latest-poster .posters img.latest {
   display: none !important;
 }
 
-.ignored-user-quote {
-  display: none !important;
-}
-
-td.posters::after {
+tr.ignored-latest-poster .posters::after {
   content: none !important;
-}
-
-td.posters::after {
-  content: none !important;
-}
-
-.topic-post[style*="display: none"] {
-  display: none !important;
 }
