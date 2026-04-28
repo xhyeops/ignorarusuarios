@@ -4,55 +4,48 @@ export default apiInitializer("1.34", (api) => {
   const user = api.getCurrentUser();
   if (!user) return;
 
+  // DEBUG: ver estrutura do user
+  console.log("[v0] User object:", user);
+  console.log("[v0] ignored_usernames:", user.ignored_usernames);
+  console.log("[v0] ignored_users:", user.ignored_users);
+  
+  // Tenta encontrar a lista de ignorados
   const ignoredUsers = user.ignored_usernames || user.ignored_users || [];
-  if (ignoredUsers.length === 0) return;
+  console.log("[v0] Final ignoredUsers:", ignoredUsers);
 
-  // 1. Para tabela de tópicos tradicional (funciona com transformer)
-  api.registerValueTransformer(
-    "topic-list-item-class",
-    ({ value, context: { topic } }) => {
-      if (
-        topic?.creator &&
-        ignoredUsers.includes(topic.creator.username)
-      ) {
-        value.push("hidden-topic");
-      }
-      return value;
-    }
-  );
+  if (ignoredUsers.length === 0) {
+    console.log("[v0] Nenhum usuário ignorado encontrado!");
+    return;
+  }
 
-  // 2. Para lista de tópicos recentes (usa MutationObserver)
   function hideIgnoredTopicsInLatestList() {
-    const latestItems = document.querySelectorAll(".latest-topic-list-item:not([data-ignore-checked])");
+    const latestItems = document.querySelectorAll(".latest-topic-list-item:not([data-v0-checked])");
+    console.log("[v0] Itens encontrados:", latestItems.length);
     
     latestItems.forEach((item) => {
-      item.setAttribute("data-ignore-checked", "true");
+      item.setAttribute("data-v0-checked", "true");
       
       const userCard = item.querySelector(".topic-poster a[data-user-card]");
-      if (userCard) {
-        const username = userCard.getAttribute("data-user-card");
-        if (username && ignoredUsers.some(u => u.toLowerCase() === username.toLowerCase())) {
+      const username = userCard?.getAttribute("data-user-card");
+      
+      console.log("[v0] Tópico:", item.querySelector(".title")?.textContent?.substring(0, 30));
+      console.log("[v0] Username do autor:", username);
+      
+      if (username) {
+        const isIgnored = ignoredUsers.some(
+          u => u.toLowerCase() === username.toLowerCase()
+        );
+        console.log("[v0] Está ignorado?", isIgnored);
+        
+        if (isIgnored) {
           item.style.display = "none";
+          console.log("[v0] ESCONDENDO tópico!");
         }
       }
     });
   }
 
-  // Executa no carregamento inicial
   api.onPageChange(() => {
-    hideIgnoredTopicsInLatestList();
-  });
-
-  // Observa mudanças dinâmicas (infinite scroll, etc.)
-  const observer = new MutationObserver(() => {
-    hideIgnoredTopicsInLatestList();
-  });
-
-  api.onAppEvent("page:changed", () => {
-    const latestList = document.querySelector(".latest-topic-list");
-    if (latestList) {
-      observer.observe(latestList, { childList: true, subtree: true });
-    }
-    hideIgnoredTopicsInLatestList();
+    setTimeout(hideIgnoredTopicsInLatestList, 500);
   });
 });
