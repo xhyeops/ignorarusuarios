@@ -140,17 +140,6 @@ tr.ignored-latest-poster .posters::after {
 }
 
 
-/* Esconde novos itens até serem verificados */
-.latest-topic-list-item:not([data-v0-processed]) {
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.latest-topic-list-item[data-v0-processed] {
-  opacity: 1;
-}
-
-/* Tabela tradicional */
 tr.topic-list-item.hidden-topic {
   display: none !important;
 }
