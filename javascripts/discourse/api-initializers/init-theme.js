@@ -4,48 +4,67 @@ export default apiInitializer("1.34", (api) => {
   const user = api.getCurrentUser();
   if (!user) return;
 
-  // DEBUG: ver estrutura do user
-  console.log("[v0] User object:", user);
-  console.log("[v0] ignored_usernames:", user.ignored_usernames);
-  console.log("[v0] ignored_users:", user.ignored_users);
-  
-  // Tenta encontrar a lista de ignorados
-  const ignoredUsers = user.ignored_usernames || user.ignored_users || [];
-  console.log("[v0] Final ignoredUsers:", ignoredUsers);
+  const ignoredUsers = user.ignored_users || [];
+  if (ignoredUsers.length === 0) return;
 
-  if (ignoredUsers.length === 0) {
-    console.log("[v0] Nenhum usuário ignorado encontrado!");
-    return;
-  }
+  // Converte para lowercase para comparação
+  const ignoredUsersLower = ignoredUsers.map(u => u.toLowerCase());
 
+  // Para tabela de tópicos tradicional
+  api.registerValueTransformer(
+    "topic-list-item-class",
+    ({ value, context: { topic } }) => {
+      if (
+        topic?.creator &&
+        ignoredUsersLower.includes(topic.creator.username.toLowerCase())
+      ) {
+        value.push("hidden-topic");
+      }
+      return value;
+    }
+  );
+
+  // Para lista de tópicos recentes - busca o criador real via store
   function hideIgnoredTopicsInLatestList() {
-    const latestItems = document.querySelectorAll(".latest-topic-list-item:not([data-v0-checked])");
-    console.log("[v0] Itens encontrados:", latestItems.length);
-    
+    const topicStore = api.container.lookup("service:store");
+    const latestItems = document.querySelectorAll(".latest-topic-list-item:not([data-v0-processed])");
+
     latestItems.forEach((item) => {
-      item.setAttribute("data-v0-checked", "true");
+      item.setAttribute("data-v0-processed", "true");
+
+      const topicId = item.getAttribute("data-topic-id");
+      if (!topicId) return;
+
+      // Busca o tópico no store do Discourse
+      const topic = topicStore.peekRecord("topic", topicId);
       
-      const userCard = item.querySelector(".topic-poster a[data-user-card]");
-      const username = userCard?.getAttribute("data-user-card");
-      
-      console.log("[v0] Tópico:", item.querySelector(".title")?.textContent?.substring(0, 30));
-      console.log("[v0] Username do autor:", username);
-      
-      if (username) {
-        const isIgnored = ignoredUsers.some(
-          u => u.toLowerCase() === username.toLowerCase()
-        );
-        console.log("[v0] Está ignorado?", isIgnored);
-        
-        if (isIgnored) {
+      if (topic) {
+        // O criador está em topic.creator ou topic.posters[0] dependendo da versão
+        const creatorUsername = 
+          topic.creator?.username || 
+          topic.details?.created_by?.username ||
+          topic.posters?.find(p => p.description?.includes("Original"))?.user?.username;
+
+        if (creatorUsername && ignoredUsersLower.includes(creatorUsername.toLowerCase())) {
           item.style.display = "none";
-          console.log("[v0] ESCONDENDO tópico!");
         }
       }
     });
   }
 
   api.onPageChange(() => {
-    setTimeout(hideIgnoredTopicsInLatestList, 500);
+    setTimeout(hideIgnoredTopicsInLatestList, 300);
+  });
+
+  // Observer para infinite scroll
+  const observer = new MutationObserver(() => {
+    hideIgnoredTopicsInLatestList();
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const latestList = document.querySelector(".latest-topic-list");
+    if (latestList) {
+      observer.observe(latestList, { childList: true, subtree: true });
+    }
   });
 });
