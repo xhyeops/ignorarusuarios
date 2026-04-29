@@ -8,7 +8,7 @@ export default apiInitializer("1.34", (api) => {
   if (ignoredUsers.length === 0) return;
 
   const ignoredUsersLower = ignoredUsers.map(u => u.toLowerCase());
-  const checkedTopics = new Set();
+  const topicCreatorCache = new Map();
 
   // Para tabela de tópicos tradicional
   api.registerValueTransformer(
@@ -24,34 +24,41 @@ export default apiInitializer("1.34", (api) => {
     }
   );
 
-  // Para lista de tópicos recentes - busca via API
+  // Para lista de tópicos recentes
   async function hideIgnoredTopicsInLatestList() {
     const latestItems = document.querySelectorAll(".latest-topic-list-item:not([data-v0-processed])");
 
-    for (const item of latestItems) {
+    // Processa todos em paralelo para ser mais rápido
+    const promises = Array.from(latestItems).map(async (item) => {
       item.setAttribute("data-v0-processed", "true");
 
       const topicId = item.getAttribute("data-topic-id");
-      if (!topicId || checkedTopics.has(topicId)) continue;
+      if (!topicId) return;
 
-      checkedTopics.add(topicId);
+      let creatorUsername = topicCreatorCache.get(topicId);
 
-      try {
-        const response = await fetch(`/t/${topicId}.json`);
-        const data = await response.json();
-        
-        const creatorUsername = data.details?.created_by?.username;
-
-        if (creatorUsername && ignoredUsersLower.includes(creatorUsername.toLowerCase())) {
-          item.style.display = "none";
+      if (!creatorUsername) {
+        try {
+          const response = await fetch(`/t/${topicId}.json`);
+          const data = await response.json();
+          creatorUsername = data.details?.created_by?.username;
+          if (creatorUsername) {
+            topicCreatorCache.set(topicId, creatorUsername);
+          }
+        } catch (e) {
+          return;
         }
-      } catch (e) {
-        // Silenciosamente ignora erros
       }
-    }
+
+      if (creatorUsername && ignoredUsersLower.includes(creatorUsername.toLowerCase())) {
+        item.style.display = "none";
+      }
+    });
+
+    await Promise.all(promises);
   }
 
   api.onPageChange(() => {
-    setTimeout(hideIgnoredTopicsInLatestList, 300);
+    hideIgnoredTopicsInLatestList();
   });
 });
